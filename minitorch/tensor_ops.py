@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Optional, Type
 
 import numpy as np
 from typing_extensions import Protocol
@@ -20,8 +20,7 @@ if TYPE_CHECKING:
 
 
 class MapProto(Protocol):
-    def __call__(self, x: Tensor, out: Optional[Tensor] = ..., /) -> Tensor:
-        ...
+    def __call__(self, x: Tensor, out: Optional[Tensor] = ..., /) -> Tensor: ...
 
 
 class TensorOps:
@@ -136,7 +135,7 @@ class SimpleOps(TensorOps):
 
     @staticmethod
     def zip(
-        fn: Callable[[float, float], float]
+        fn: Callable[[float, float], float],
     ) -> Callable[["Tensor", "Tensor"], "Tensor"]:
         """
         Higher-order tensor zip function ::
@@ -230,9 +229,7 @@ class SimpleOps(TensorOps):
 # Implementations.
 
 
-def tensor_map(
-    fn: Callable[[float], float]
-) -> Callable[[Storage, Shape, Strides, Storage, Shape, Strides], None]:
+def tensor_map(fn: Callable[[float], float]) -> Any:
     """
     Low-level implementation of tensor map between
     tensors with *possibly different strides*.
@@ -251,9 +248,15 @@ def tensor_map(
 
     Args:
         fn: function from float-to-float to apply
+        out (array): storage for out tensor
+        out_shape (array): shape for out tensor
+        out_strides (array): strides for out tensor
+        in_storage (array): storage for in tensor
+        in_shape (array): shape for in tensor
+        in_strides (array): strides for in tensor
 
     Returns:
-        Tensor map function.
+        None : Fills in `out`
     """
 
     def _map(
@@ -264,16 +267,29 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 2.3.
+        size = len(out)
+
+        for i in range(size):
+            out_idx = np.array(out_shape)
+            to_index(i, out_shape, out_idx)
+            out_pos = index_to_position(out_idx, out_strides)
+
+            if np.array_equal(out_shape, in_shape):
+                in_idx = np.array(in_shape)
+                to_index(i, in_shape, in_idx)
+                in_pos = index_to_position(in_idx, in_strides)
+            else:
+                in_idx = np.array(in_shape)
+                broadcast_index(out_idx, out_shape, in_shape, in_idx)
+                in_pos = index_to_position(in_idx, in_strides)
+
+            out[out_pos] = fn(in_storage[in_pos])
 
     return _map
 
 
-def tensor_zip(
-    fn: Callable[[float, float], float]
-) -> Callable[
-    [Storage, Shape, Strides, Storage, Shape, Strides, Storage, Shape, Strides], None
-]:
+def tensor_zip(fn: Callable[[float, float], float]) -> Any:
     """
     Low-level implementation of tensor zip between
     tensors with *possibly different strides*.
@@ -292,9 +308,18 @@ def tensor_zip(
 
     Args:
         fn: function mapping two floats to float to apply
+        out (array): storage for `out` tensor
+        out_shape (array): shape for `out` tensor
+        out_strides (array): strides for `out` tensor
+        a_storage (array): storage for `a` tensor
+        a_shape (array): shape for `a` tensor
+        a_strides (array): strides for `a` tensor
+        b_storage (array): storage for `b` tensor
+        b_shape (array): shape for `b` tensor
+        b_strides (array): strides for `b` tensor
 
     Returns:
-        Tensor zip function.
+        None : Fills in `out`
     """
 
     def _zip(
@@ -308,14 +333,38 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 2.3.
+        size = len(out)
+        for i in range(size):
+            out_idx = np.array(out_shape)
+            to_index(i, out_shape, out_idx)
+            out_pos = index_to_position(out_idx, out_strides)
+
+            if np.array_equal(out_shape, a_shape) and np.array_equal(
+                out_shape, b_shape
+            ):
+                a_idx = np.array(a_shape)
+                to_index(i, a_shape, a_idx)
+                a_pos = index_to_position(a_idx, a_strides)
+
+                b_idx = np.array(b_shape)
+                to_index(i, b_shape, b_idx)
+                b_pos = index_to_position(b_idx, b_strides)
+            else:
+                a_idx = np.array(a_shape)
+                broadcast_index(out_idx, out_shape, a_shape, a_idx)
+                a_pos = index_to_position(a_idx, a_strides)
+
+                b_idx = np.array(b_shape)
+                broadcast_index(out_idx, out_shape, b_shape, b_idx)
+                b_pos = index_to_position(b_idx, b_strides)
+
+            out[out_pos] = fn(a_storage[a_pos], b_storage[b_pos])
 
     return _zip
 
 
-def tensor_reduce(
-    fn: Callable[[float, float], float]
-) -> Callable[[Storage, Shape, Strides, Storage, Shape, Strides, int], None]:
+def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
     """
     Low-level implementation of tensor reduce.
 
@@ -324,9 +373,16 @@ def tensor_reduce(
 
     Args:
         fn: reduction function mapping two floats to float
+        out (array): storage for `out` tensor
+        out_shape (array): shape for `out` tensor
+        out_strides (array): strides for `out` tensor
+        a_storage (array): storage for `a` tensor
+        a_shape (array): shape for `a` tensor
+        a_strides (array): strides for `a` tensor
+        reduce_dim (int): dimension to reduce out
 
     Returns:
-        Tensor reduce function.
+        None : Fills in `out`
     """
 
     def _reduce(
@@ -338,7 +394,22 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 2.3.
+        size = len(out)
+
+        for i in range(size):
+            out_idx = np.array(out_shape)
+            to_index(i, out_shape, out_idx)
+            out_pos = index_to_position(out_idx, out_strides)
+
+            xs = []
+            for j in range(a_shape[reduce_dim]):
+                a_idx = np.array(out_idx)
+                a_idx[reduce_dim] = j
+                a_pos = index_to_position(a_idx, a_strides)
+                xs.append(a_storage[a_pos])
+
+            out[out_pos] = operators.reduce(fn, xs)
 
     return _reduce
 

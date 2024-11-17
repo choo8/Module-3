@@ -22,7 +22,10 @@ def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) 
     Returns:
         An approximation of $f'_i(x_0, \ldots, x_{n-1})$
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # TODO: Implement for Task 1.1.
+    v1 = [v + (epsilon / 2.0) if idx == arg else v for idx, v in enumerate(vals)]
+    v2 = [v - (epsilon / 2.0) if idx == arg else v for idx, v in enumerate(vals)]
+    return (f(*v1) - f(*v2)) / epsilon
 
 
 variable_count = 1
@@ -60,7 +63,23 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # TODO: Implement for Task 1.4.
+    vars, visited = [], set()
+
+    def _dfs(_v: Variable) -> None:
+        visited.add(_v.unique_id)
+
+        if _v.history:
+            for parent in _v.parents:
+                if not _v.is_constant() and parent.unique_id not in visited:
+                    _dfs(parent)
+
+        if not _v.is_constant():
+            vars.append(_v)
+
+    _dfs(variable)
+
+    return list(reversed(vars))
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -74,7 +93,17 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # TODO: Implement for Task 1.4.
+    vars = topological_sort(variable)
+    scalars = {v.unique_id: 0.0 for v in vars}
+    scalars[variable.unique_id] = deriv  # Right-most variable
+    for v in vars:
+        if v.is_leaf():
+            v.accumulate_derivative(scalars[v.unique_id])
+        else:
+            for _v, _deriv in v.chain_rule(scalars[v.unique_id]):
+                if _v.unique_id in scalars:
+                    scalars[_v.unique_id] += _deriv
 
 
 @dataclass

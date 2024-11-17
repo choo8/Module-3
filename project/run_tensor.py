@@ -21,7 +21,10 @@ class Network(minitorch.Module):
         self.layer3 = Linear(hidden_layers, 1)
 
     def forward(self, x):
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 2.5.
+        h1 = self.layer1.forward(x).relu()
+        h2 = self.layer2.forward(h1).relu()
+        return self.layer3.forward(h2).sigmoid()
 
 
 class Linear(minitorch.Module):
@@ -32,7 +35,16 @@ class Linear(minitorch.Module):
         self.out_size = out_size
 
     def forward(self, x):
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 2.5
+        x_broadcasted = x.view(*x.shape, 1)  # (batch_size, in_size, 1)
+        weights_broadcasted = self.weights.value.view(
+            1, *self.weights.value.shape
+        )  # (1, in_size, out_size)
+        v1 = x_broadcasted * weights_broadcasted  # (batch_size, in_size, out_size)
+        v2 = (
+            v1.sum(dim=1).contiguous().view(x.shape[0], self.out_size)
+        )  # (batch_size, out_size)
+        return v2 + self.bias.value.view(1, self.out_size)
 
 
 def default_log_fn(epoch, total_loss, correct, losses):
@@ -51,7 +63,6 @@ class TensorTrain:
         return self.model.forward(minitorch.tensor(X))
 
     def train(self, data, learning_rate, max_epochs=500, log_fn=default_log_fn):
-
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
         self.model = Network(self.hidden_layers)
@@ -59,6 +70,8 @@ class TensorTrain:
 
         X = minitorch.tensor(data.X)
         y = minitorch.tensor(data.y)
+
+        print(X.shape, y.shape)
 
         losses = []
         for epoch in range(1, self.max_epochs + 1):

@@ -300,7 +300,6 @@ if numba.cuda.is_available():
         for b in range(2):
             for i in range(size_a):
                 for j in range(size_b):
-                    print(i, j)
                     assert_close(z[b, i, j], z2[b, i, j])
 
 
@@ -345,7 +344,6 @@ def test_mm2() -> None:
     c = a @ b
 
     c2 = (a.view(2, 3, 1) * b.view(1, 3, 4)).sum(1).view(2, 4)
-
     for ind in c._tensor.indices():
         assert_close(c[ind], c2[ind])
 
@@ -369,11 +367,12 @@ def test_bmm(backend: str, data: DataObject) -> None:
     )
     a = data.draw(tensors(backend=shared[backend], shape=(D, A, B)))
     b = data.draw(tensors(backend=shared[backend], shape=(1, B, C)))
-
     c = a @ b
     c2 = (
         (a.contiguous().view(D, A, B, 1) * b.contiguous().view(1, 1, B, C))
         .sum(2)
         .view(D, A, C)
     )
-    assert_close_tensor(c, c2)
+    # assert_close_tensor(c, c2) # Not sure what is the error, cannot compile in Numba
+    for ind in c._tensor.indices():
+        assert_close(c[ind], c2[ind])
